@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+  <head>
+    <meta charset="utf-8">
+    <title>acapela translate</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <meta name="viewport" content="width=device-width">
+    <style>
+        .star{color: black;font-size: 2.0rem;padding: 0 1rem;}
+        .star::before{content: '\2606'; cursor: pointer;}
+        .star.rated::before{content: '\2605';  }
+        .stars{counter-reset: rateme 0; font-size: 2.0rem; font-weight: 900;}
+        .star.rated{counter-increment: rateme 1;}
+        .stars::after{content: counter(rateme) '/5';}
+    </style>
+  </head>
+
+  <body>
+    <h1>Translator</h1>
+      <textarea id="original_text" name="msg" rows="10" cols="30"></textarea>
+
+      <select id="lang" name="Language">
+        <option value="Fr">French</option>
+        <option value="en">English</option>
+        <option value="sw">Swedish</option>
+        <option value="nl">Dutch</option>
+        <option value="de">German</option>
+      </select>
+
+      <button>Translate</button>
+
+      <!-- <div id="results"></div> -->
+      <textarea id="translated_text" name="msg" rows="10" cols="30"></textarea>
+      <p id="translated_lang"></p>
+      <p id="senti"></p>
+      <p id="entities"></p>
+      <p id="synt"></p>
+
+
+
+      <div class="stars" data-rating="0">
+        <span class="star">&nbsp;</span>
+        <span class="star">&nbsp;</span>
+        <span class="star">&nbsp;</span>
+        <span class="star">&nbsp;</span>
+        <span class="star">&nbsp;</span>
+    </div>
+  </body>
+
+  <script >
+  document.addEventListener('DOMContentLoaded', function(){let stars = document.querySelectorAll('.star');
+            stars.forEach(function(star){star.addEventListener('click', setRating);
+          });
+            let rating = parseInt(document.querySelector('.stars').getAttribute('data-rating'));
+            let target = stars[rating - 1];
+            target.dispatchEvent(new MouseEvent('click'));
+          });
+        function setRating(ev){
+            let span = ev.currentTarget;
+            let stars = document.querySelectorAll('.star');
+            let match = false;
+            let num = 0;
+            stars.forEach(function(star, index){
+                if(match){
+                    star.classList.remove('rated');
+                }else{
+                    star.classList.add('rated');
+                }
+                if(star === span){
+                    match = true;
+                    num = index + 1;
+                }
+            });
+            translatedObject.rating = num;
+            saveTranslation()
+            document.querySelector('.stars').setAttribute('data-rating', num);
+        }
+  var translatedObject = {};
+	function translation(nextStep)
+	{
+		 console.log("Performing translation on \""+ document.getElementById("original_text").value + "\"");
+		 $.post("https://translation.googleapis.com/language/translate/v2?key=AIzaSyCgrr3wKqNO-t8rWeIX2_rlDKEYSi2kIX8",
+		  {
+			"q": document.getElementById("original_text").value,
+			"target": document.getElementById("lang").value
+		  },
+		  function(data,status)
+		  {
+			console.log(data.data.translations[0]);
+			console.log(data.data.translations[0]["translatedText"]);
+			document.getElementById("translated_text").value = data.data.translations[0]["translatedText"];
+			document.getElementById("translated_lang").innerHTML="<b>Detected Language: </b>" +JSON.stringify(data.data.translations[0]["detectedSourceLanguage"]).replace(/['"]+/g, '');
+      translatedObject.InputData = document.getElementById("original_text").value
+      translatedObject.TranslatedData = data.data.translations[0]["translatedText"];
+      translatedObject.DetectedLanguage = JSON.stringify(data.data.translations[0]["detectedSourceLanguage"]).replace(/['"]+/g, '')
+      nextStep();
+    });
+	}
+
+	function sentiment(nextStep)
+  {
+    console.log("Performing sentiment analysis on \""+ document.getElementById("translated_text").value + "\"");
+    $.ajax({
+      url:"https://language.googleapis.com/v1/documents:analyzeSentiment?key=AIzaSyCgrr3wKqNO-t8rWeIX2_rlDKEYSi2kIX8",
+		  type:"POST",
+		  data:JSON.stringify({
+			"encodingType": "UTF8",
+			"document":
+			{
+			  "type": "PLAIN_TEXT",
+			  "content": document.getElementById("translated_text").value
+			}
+		  }),
+		  contentType:"application/json; charset=utf-8",
+		  dataType:"json",
+		  success: function(data, status, xhr){
+			console.log(data);
+      document.getElementById("senti").innerHTML="<b>sentiment : </b>" +JSON.stringify(data.sentences[0]).replace(/[{}]|[,]|[""]+/g,'\n' );
+      translatedObject.sentiment = JSON.stringify(data.sentences[0]).replace(/[{}]|[,]|[""]+/g,'\n' );
+      nextStep();
+		  }
+		});
+	}
+    function entities(nextStep)
+    {
+    console.log("Performing entities analysis on \""+ document.getElementById("translated_text").value + "\"");
+    $.ajax({
+      url:"https://language.googleapis.com/v1/documents:analyzeEntities?key=AIzaSyCgrr3wKqNO-t8rWeIX2_rlDKEYSi2kIX8",
+		  type:"POST",
+		  data:JSON.stringify({
+			"encodingType": "UTF8",
+			"document":
+			{
+			  "type": "PLAIN_TEXT",
+			  "content": document.getElementById("translated_text").value
+			}
+		  }),
+		  contentType:"application/json; charset=utf-8",
+		  dataType:"json",
+		  success: function(data, status, xhr){
+			console.log(data);
+      document.getElementById("entities").innerHTML="<b>entities : </b>" +JSON.stringify(data.entities).replace(/[{"'[\]'"}]+/g,' ');
+      translatedObject.entities = JSON.stringify(data.entities).replace(/[{"'[\]'"}]+/g,' ');
+      nextStep();
+		  }
+		});
+	  }
+    function syntax(nextStep)
+    {
+    console.log("Performing syntax analysis on \""+ document.getElementById("translated_text").value + "\"");
+    $.ajax({
+      url:"https://language.googleapis.com/v1/documents:analyzeSyntax?key=AIzaSyCgrr3wKqNO-t8rWeIX2_rlDKEYSi2kIX8",
+		  type:"POST",
+		  data:JSON.stringify({
+			"encodingType": "UTF8",
+			"document":
+			{
+			  "type": "PLAIN_TEXT",
+			  "content": document.getElementById("translated_text").value
+			}
+		  }),
+		  contentType:"application/json; charset=utf-8",
+		  dataType:"json",
+		  success: function(data, status, xhr){
+			console.log(data);
+      document.getElementById("synt").innerHTML="<b>syntax : </b>" +JSON.stringify(data.tokens).replace(/[{"''"}]+/g,' ');
+      translatedObject.syntax = JSON.stringify(data.tokens).replace(/[{"''"}]+/g,' ')
+      nextStep();
+		  }
+		});
+	  }
+
+    function saveTranslation()
+    {
+      console.log('##saveTrans##')
+      console.log(translatedObject)
+    $.ajax({
+      url:"http://localhost:3000/saveTranslation",
+		  type:"POST",
+		  data:JSON.stringify(translatedObject),
+		  contentType:"application/json; charset=utf-8",
+		  dataType:"json",
+		  success: function(data, status, xhr){
+      console.log(status);
+			console.log(data);
+		  }
+		});
+	  }
+
+    $(document).ready(function()
+    {
+    $("button").click(function()
+    {
+
+
+	  translation(function(){sentiment(function(){entities(function(){syntax(function(){})})})});
+
+
+
+
+    });
+  });
+  </script>
+</html>

@@ -1,0 +1,8 @@
+https://medium.com/@AshPross/setting-up-node-js-mongodb-redis-and-mysql-inside-vagrant-using-centos-6-x-98c98283958e
+sudo apt-get install -y python-pip
+pip install nodeenv  # This installs the nodeenv package into our new python virtualenv so named "myproject1" above
+sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv EA312927
+echo "deb http://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/3.2 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-3.2.list
+sudo apt-get update
+sudo apt-get install -y mongodb-org
+sudo systemctl start mongod
