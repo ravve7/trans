@@ -7,7 +7,7 @@ var app = express();
 app.use(bodyParser.json());
 app.use(cors());
 app.get('/', function(req, res){
-   res.send("Hello world!hhhhhhhhhhh\n");
+   res.send("server ping worked\n");
 });
 
 app.post('/saveTranslation', function(req, res){
